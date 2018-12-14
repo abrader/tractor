@@ -1,0 +1,56 @@
+{
+  "id": "/tblade-pixar",
+  "backoffFactor": 1.15,
+  "backoffSeconds": 1,
+  "cmd": "mkdir /mnt/nfs_3par && mount 10.10.23.14:/vfs1/vfs1/.admin/nfsshare1 /mnt/nfs_3par && /opt/pixar/Tractor-2.2/bin/tractor-blade --log=/var/log/blade.log --verbose -L $PORT0",
+  "container": {
+    "type": "MESOS",
+    "volumes": [],
+    "docker": {
+      "image": "joshbav/tractor",
+      "forcePullImage": true,
+      "parameters": []
+    }
+  },
+  "cpus": 80,
+  "disk": 35000,
+  "env": {
+    "RMANTREE": "/opt/pixar/RenderManProServer-21.7",
+    "PATH": "/opt/pixar/RenderManProServer-21.7/bin:/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/bin",
+    "TERM": "xterm",
+    "NIMBY": "1",
+    "hname": "DCOS-TRACTOR-BLADE",
+    "LUCAS_TRACTOR_ENGINE": "172.31.1.206:80",
+    "PIXAR_LICENSE_FILE": "9010@10.10.0.30",
+    "TRACTOR_ENGINE": "10.10.0.30:8081"
+  },
+  "instances": 1,
+  "maxLaunchDelaySeconds": 3600,
+  "mem": 376000,
+  "gpus": 0,
+  "networks": [
+    {
+      "mode": "host"
+    }
+  ],
+  "portDefinitions": [
+    {
+      "name": "listenerport",
+      "protocol": "tcp",
+      "port": 10001
+    }
+  ],
+  "requirePorts": false,
+  "upgradeStrategy": {
+    "maximumOverCapacity": 0,
+    "minimumHealthCapacity": 0
+  },
+  "killSelection": "YOUNGEST_FIRST",
+  "unreachableStrategy": {
+    "inactiveAfterSeconds": 0,
+    "expungeAfterSeconds": 0
+  },
+  "healthChecks": [],
+  "fetch": [],
+  "constraints": []
+}

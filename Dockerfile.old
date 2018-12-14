@@ -1,0 +1,77 @@
+FROM joshbav/centos:latest
+
+#### SETUP USERS
+# Since tractor is in a container, and this is a POC project, we aren't concerned about user account rights
+RUN useradd tractor
+RUN usermod -a -G wheel tractor
+# centos is a default user account for sub processes
+RUN useradd centos
+RUN usermod -a -G wheel centos
+####
+
+# Not sure if it's needed, but a makefile was used in a sanity check render jobs
+RUN yum install -y make 
+
+#### SUDO
+# Doing things like mount commands can require sudo
+RUN yum install -y sudo
+# A slightly modified sudoers file was made for NFS mounting and such
+ADD sudoers /etc/sudoers
+# Adds config to avoid the first time sudo lecure when used in a script
+ADD privacy /etc/sudoers.d/privacy
+####
+
+#### SETUP ROOT'S BASH PROFILE
+# For convenience we might want to start the container manually, or exec into a running instance
+# and run prman and such. If so, environment variables such as the path
+# need to be properly setup. Thus If doing a docker or dcos exec, 
+# you mush use "bash -l" as the command.
+# However we need to remember to update .bash_profile if we add/change env vars
+# TODO move all env vars to this section for easier maintenance, dupe parent
+# containers
+ADD root-bashprofile /root/.bash_profile
+# To get this profile to be used, bash -l must be launched, so we'll
+# make it the default CMD. Note we won't use an ENTRYPOINT
+# This means we can just "docker run -it joshbav/tractor" and have the right
+# environment, such as the right path.
+CMD bash -l
+####
+
+#### TRACTOR v2.2
+ADD Tractor-2.2_1715407-linuxRHEL6_gcc44icc150.x86_64.rpm /tmp
+RUN rpm -ivh /tmp/Tractor-2.2_1715407-linuxRHEL6_gcc44icc150.x86_64.rpm
+RUN rm /tmp/Tractor-2.2_1715407-linuxRHEL6_gcc44icc150.x86_64.rpm
+####
+
+### RENDERMAN v21.6
+ADD RenderManProServer-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm /tmp
+RUN rpm -ivh /tmp/RenderManProServer-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm
+RUN rm /tmp/RenderManProServer-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm
+ENV RMANTREE=/opt/pixar/RenderManProServer-21.6
+ENV PATH=$RMANTREE/bin:$PATH
+####
+
+#### RENDERMAN FOR MAYA 2018 v21.6
+ADD RenderManForMaya-maya2018-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm /tmp
+RUN rpm -ivh /tmp/RenderManForMaya-maya2018-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm
+RUN rm /tmp/RenderManForMaya-maya2018-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm
+# TODO: is this installed correctly? https://rmanwiki.pixar.com/display/RFM/Installation+of+RenderMan+for+Maya
+####
+
+#### RENDERMAN FOR KATANA 2.6 v21.6
+ADD RenderManForKatana-katana2.6-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm /tmp
+RUN rpm -ivh /tmp/RenderManForKatana-katana2.6-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm
+RUN rm /tmp/RenderManForKatana-katana2.6-21.6_1803412-linuxRHEL6_gcc44icc150.x86_64.rpm
+
+#### TEMP, TO REMOVE
+# To simplify things for the POC
+##RUN chmod -R 777 /opt/pixar
+####
+
+#### MISC CLEANUP
+# Clear out /tmp since yum uses it
+RUN rm -rf /tmp/*
+# Clean up yum
+RUN yum clean all
+RUN rm -rf /var/cache/yum
+####

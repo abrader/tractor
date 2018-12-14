@@ -1,0 +1,41 @@
+Job -title {Test} -subtasks {
+  Task -title {Some remotecmd's} -id {test-render} -service {pixarRender} -cmds {
+    #CREATE LOCAL NFS SHARES AND MOUNT THEM 
+      RemoteCmd {echo About to create directory /nfs-ro-%j-%t for NFS RO mount} -refersto test-render
+      RemoteCmd {{sudo} {mkdir} {/nfs-ro-%j-%t}} -refersto test-render
+      RemoteCmd {echo About to do NFS RO mount to /nfs-ro-%j-%t} -refersto test-render  
+      RemoteCmd {{sudo} {mount} {-v} {-t} {nfs} {-o} {sync,ro,exec} {172.31.7.236:/nfsshare-ro} {/nfs-ro-%j-%t}} -refersto test-render  
+      RemoteCmd {echo About to create directory /nfs-rw for NFS RW mount} -refersto test-render
+      RemoteCmd {{sudo} {mkdir} {/nfs-rw-%j-%t}} -refersto test-render
+      RemoteCmd {echo About to do NFS RW mount to /nfs-rw-%j-%t} -refersto test-render 
+      RemoteCmd {{sudo} {mount} {-v} {-t} {nfs} {-o} {sync,rw,exec} {172.31.7.236:/nfsshare-rw} {/nfs-rw-%j-%t}} -refersto test-render 
+    #CREATE TEMP WORKING DIRECTORY
+      RemoteCmd {echo Creating working directory /tmp/%j-%t, corresponding to this job} -refersto test-render  
+      RemoteCmd {{mkdir} {/tmp/%j-%t}} -refersto test-render 
+    #COPY RENDER JOBS FROM REMOTE NFS RO MOUNT TO TEMP DIRECTORY
+      RemoteCmd {echo About to copy /nfs-ro-%j-%t/scenes/instancing/* from NFS RO mount to /tmp/%j-%t} -refersto test-render  
+      RemoteCmd {/bin/bash -c "sudo cp /nfs-ro-%j-%t/scenes/instancing/* /tmp/%j-%t"} -refersto test-render 
+    #RUN RENDERMAN
+      RemoteCmd {echo About to run prman on simple_instancing} -refersto test-render 
+      RemoteCmd {/bin/bash -c "echo Start time is; date"} -refersto test-render
+      RemoteCmd {prman -cwd /tmp/%j-%t simple_instancing.rib} -refersto test-render 
+      RemoteCmd {/bin/bash -c "echo FINISHED. End time is; date"} -refersto test-render
+    #CREATE JOB & TASK SPECIFIC FOLDER ON REMOTE RW NFS SHARE AND COPY RENDERED .TIF  TO IT
+      RemoteCmd {echo About to create job output folder on NFS RW share /nfs-rw-%j-%t/%j-%t} -refersto test-render
+      RemoteCmd {mkdir /nfs-rw-%j-%t/%j-%t} -refersto test-render
+      RemoteCmd {echo About to copy rendered .tif file to NFS RW share /nfs-rw-%j-%t/%j-%t} -refersto test-render
+      RemoteCmd {/bin/bash -c "cp /tmp/%j-%t/*.tif /nfs-rw-%j-%t/%j-%t"} -refersto test-render  
+    #CLEAN UP - DELETE TEMP LOCAL WORKING DIRECTORY CONTENTS, BUT NOT DIRECTORY ITSELF
+      RemoteCmd {echo About to erase temporary local working directory /tmp/%j-%t} -refersto test-render
+      RemoteCmd {rm -rf /tmp/%j-%t} -refersto test-render
+    #CLEAN UP - UNMOUNT NFS
+      RemoteCmd {echo About to unmount NFS RO mount /nfs-ro-%j-%t} -refersto test-render
+      RemoteCmd {{sudo} {umount} {-f} {/nfs-ro-%j-%t}} -refersto test-render
+      RemoteCmd {echo About to unmount NFS RW mount /nfs-ro-%j-%t} -refersto test-render
+      RemoteCmd {{sudo} {umount} {-f}  {/nfs-rw-%j-%t}} -refersto test-render
+    #DONE!
+      RemoteCmd {echo DONE!} -refersto test-render
+  } -cleanup {
+   RemoteCmd {echo "1st cleanup command"}  -refersto test-render
+  }
+}
